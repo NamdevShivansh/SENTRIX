@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SENTRIX — Vulnerability Scanner</title>
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@300;400;600;700&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+<div class="app">
+
+  <!-- ══ HEADER ══ -->
+  <header>
+    <div class="logo">
+      <div class="logo-icon"></div>
+      <div>
+        <div class="logo-text">SENTRIX</div>
+        <div class="logo-sub">Vulnerability Intelligence Platform</div>
+      </div>
+    </div>
+    <div class="header-status">
+      <div class="auth-badge" id="authBadge">🔐 AUTH</div>
+      <div class="status-badge">
+        <div class="status-dot" id="statusDot"></div>
+        <span id="statusText">IDLE</span>
+      </div>
+      <div class="status-badge">
+        <span id="apiKeyStatus">⚙ AI STATUS</span>
+      </div>
+    </div>
+  </header>
+
+  <main>
+
+    <!-- ══ SCAN INPUT ══ -->
+    <div class="scan-panel">
+      <div class="scan-panel-title">◈ TARGET ACQUISITION</div>
+
+      <div class="scan-row-1">
+        <div class="url-input-wrap">
+          <span class="url-prefix">TARGET://</span>
+          <input class="url-input" id="targetUrl" type="text"
+            placeholder="example.com  or  https://target.com" />
+        </div>
+        <button class="scan-btn" id="scanBtn" onclick="startScan()">SCAN</button>
+      </div>
+
+      <div class="scan-row-2">
+        <div class="scan-mode-group">
+          <button class="option-btn" id="opt-passive" onclick="toggleOpt(this)">PASSIVE</button>
+          <button class="option-btn active" id="opt-active" onclick="toggleOpt(this)">ACTIVE</button>
+          <button class="option-btn" id="opt-deep" onclick="toggleOpt(this)">DEEP</button>
+        </div>
+        <div class="mode-desc" id="modeHint">100 pages — Full scan (SQLi, XSS, LFI, IDOR, Write IDOR, Mass Assignment...)</div>
+        <div class="rate-limit-group">
+          <span class="rate-label">RATE LIMIT</span>
+          <input type="number" id="rateLimit" class="rate-input" value="10" min="1" max="50" />
+          <span class="rate-unit">REQ/SEC</span>
+        </div>
+        <div class="bounty-row">
+          <span class="bounty-label">⚡ BOUNTY MODE</span>
+          <span class="bounty-desc">Safe for real targets (2 req/sec)</span>
+          <label class="bounty-toggle">
+            <input type="checkbox" id="bountyMode" />
+            <span class="bounty-slider"></span>
+          </label>
+        </div>
+      </div>
+
+      <button class="auth-toggle-btn" id="authToggleBtn" onclick="toggleAuthPanel()">
+        ▼ SET AUTH &amp; OPTIONS (OPTIONAL)
+      </button>
+
+      <div class="auth-panel" id="authPanel">
+        <div class="auth-panel-title">◈ AUTHENTICATION — LOGIN CREDENTIALS (OPTIONAL)</div>
+        <div class="auth-grid">
+          <div class="auth-field">
+            <label class="auth-label">LOGIN URL</label>
+            <input class="auth-input" id="loginUrl" type="text"
+              placeholder="https://target.com/api/login" />
+          </div>
+          <div class="auth-field">
+            <label class="auth-label">EMAIL / USERNAME</label>
+            <input class="auth-input" id="authUser" type="text"
+              placeholder="user@target.com" />
+          </div>
+          <div class="auth-field">
+            <label class="auth-label">PASSWORD</label>
+            <input class="auth-input" id="authPass" type="password"
+              placeholder="••••••••" />
+          </div>
+        </div>
+
+        <div class="auth-divider">── OR PASTE TOKEN DIRECTLY ──</div>
+
+        <div class="auth-token-ua-row">
+          <div>
+            <div class="auth-token-inner">
+              <div class="auth-field">
+                <label class="auth-label">JWT / SESSION TOKEN</label>
+                <input class="auth-input" id="authToken" type="text"
+                  placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." />
+              </div>
+              <button class="auth-clear-btn" onclick="clearAuth()">✕ CLEAR</button>
+            </div>
+          </div>
+          <div class="auth-field">
+            <label class="auth-label">USER AGENT SUFFIX (program requirement)</label>
+            <input class="auth-input" id="uaSuffix" type="text"
+              placeholder="e.g. ywh-bb-sncf-connect" />
+          </div>
+        </div>
+
+        <div class="auth-note">
+          ⚠ Only scan targets you own or have explicit written permission to test.<br>
+          Always read the program scope. Never test out-of-scope assets.<br>
+          Manually verify every finding before submitting a report.
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ PROGRESS ══ -->
+    <div class="progress-panel" id="progressPanel">
+      <div class="progress-header">
+        <span class="progress-label" id="progressLabel">INITIALIZING...</span>
+        <span class="progress-pct" id="progressPct">0%</span>
+      </div>
+      <div class="progress-bar-track">
+        <div class="progress-bar-fill" id="progressBar"></div>
+      </div>
+      <div class="progress-steps" id="progressSteps">
+        <div class="step-chip" id="step-recon">RECON</div>
+        <div class="step-chip" id="step-headers">SEC HEADERS</div>
+        <div class="step-chip" id="step-secrets">SECRETS</div>
+        <div class="step-chip" id="step-sqli">SQL INJECTION</div>
+        <div class="step-chip" id="step-xss">XSS</div>
+        <div class="step-chip" id="step-lfi">LFI</div>
+        <div class="step-chip" id="step-redirect">OPEN REDIRECT</div>
+        <div class="step-chip" id="step-ssrf">SSRF</div>
+        <div class="step-chip" id="step-idor">IDOR</div>
+        <div class="step-chip" id="step-write-idor">WRITE IDOR</div>
+        <div class="step-chip" id="step-mass-assign">MASS ASSIGN</div>
+        <div class="step-chip" id="step-auth">BROKEN AUTH</div>
+        <div class="step-chip" id="step-ssl">SSL/TLS</div>
+        <div class="step-chip" id="step-ai">AI ANALYSIS</div>
+      </div>
+      <div class="terminal-header">◈ SCAN LOG</div>
+      <div class="terminal" id="terminal"></div>
+    </div>
+
+    <!-- ══ STATS ROW ══ -->
+    <div class="stats-row hidden" id="statsRow">
+      <div class="stat-card total">
+        <div class="stat-label">Total Found</div>
+        <div class="stat-value" id="statTotal">0</div>
+        <div class="stat-sub">vulnerabilities</div>
+      </div>
+      <div class="stat-card critical">
+        <div class="stat-label">Critical</div>
+        <div class="stat-value" id="statCrit">0</div>
+        <div class="stat-sub">immediate action</div>
+      </div>
+      <div class="stat-card high">
+        <div class="stat-label">High</div>
+        <div class="stat-value" id="statHigh">0</div>
+        <div class="stat-sub">urgent</div>
+      </div>
+      <div class="stat-card medium">
+        <div class="stat-label">Medium</div>
+        <div class="stat-value" id="statMed">0</div>
+        <div class="stat-sub">moderate risk</div>
+      </div>
+      <div class="stat-card low">
+        <div class="stat-label">Low</div>
+        <div class="stat-value" id="statLow">0</div>
+        <div class="stat-sub">informational</div>
+      </div>
+    </div>
+
+    <!-- ══ CONTENT GRID ══ -->
+    <div class="content-grid">
+
+      <!-- Left: Findings -->
+      <div class="panel">
+        <div class="panel-header">
+          <span class="panel-title">◈ VULNERABILITY FINDINGS</span>
+          <span class="panel-count" id="findingsCount">No scan yet</span>
+        </div>
+        <div class="findings-list" id="findingsList">
+          <div class="empty-state">
+            <div class="empty-icon">⬡</div>
+            <div class="empty-title">AWAITING TARGET</div>
+            <div class="empty-sub">Enter a URL above and initiate scan</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right: AI + Score + Attack Path -->
+      <div class="ai-panel">
+
+        <div class="panel hidden" id="scorePanel">
+          <div class="panel-header">
+            <span class="panel-title">◈ RISK SCORE</span>
+          </div>
+          <div class="score-section">
+            <div class="score-ring">
+              <svg width="80" height="80" viewBox="0 0 80 80">
+                <circle cx="40" cy="40" r="32" fill="none" stroke="#0f2a3d" stroke-width="6"/>
+                <circle cx="40" cy="40" r="32" fill="none" stroke-width="6"
+                  stroke-dasharray="201" id="riskArc"
+                  stroke-dashoffset="201"
+                  stroke-linecap="round"
+                  style="transition:stroke-dashoffset 1s ease,stroke 0.5s;transform:rotate(-90deg);transform-origin:center"/>
+              </svg>
+              <div class="score-ring-num" id="riskNum">—</div>
+            </div>
+            <div class="score-info">
+              <div class="score-title">RISK GRADE</div>
+              <div class="score-grade" id="riskGrade">—</div>
+              <div class="score-desc" id="riskDesc">Run a scan to assess</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel attack-path hidden" id="attackPathPanel">
+          <div class="panel-header">
+            <span class="panel-title">◈ ATTACK PATH</span>
+          </div>
+          <div class="path-chain" id="pathChain"></div>
+        </div>
+
+        <div class="ai-report-box">
+          <div class="panel-header">
+            <span class="panel-title accent2">◈ AI ANALYSIS</span>
+          </div>
+          <div class="ai-thinking hidden" id="aiThinking">
+            <div class="thinking-dots"><span></span><span></span><span></span></div>
+            CLAUDE IS ANALYZING FINDINGS...
+          </div>
+          <div class="ai-content" id="aiContent">
+            <span class="muted-text">Complete a scan then click "Generate Report" to get AI analysis and prioritized remediation advice.</span>
+          </div>
+        </div>
+
+        <button class="generate-report-btn" id="generateReportBtn" onclick="generateReport()" disabled>
+          ⬡ GENERATE AI REPORT
+        </button>
+
+        <button class="export-btn hidden" id="exportBtn" onclick="exportReport()">
+          ↓ EXPORT REPORT (.txt)
+        </button>
+
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>

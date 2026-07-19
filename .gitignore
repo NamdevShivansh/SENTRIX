@@ -1,0 +1,31 @@
+# ── Secrets — never commit these ──
+.env
+.env.local
+*.env
+!.env.example
+
+# ── Python ──
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+venv/
+env/
+.venv/
+*.egg-info/
+
+# ── Scan output / logs (if you add any later) ──
+*.log
+scan_results/
+reports/
+*.report.txt
+
+# ── OS / editor junk ──
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+
+# ── Node (only relevant if you ever add tooling) ──
+node_modules/
